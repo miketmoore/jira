@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -12,43 +13,52 @@ import (
 )
 
 func main() {
-	args := os.Args[1:]
 
-	if len(args) != 3 {
-		fmt.Println("Required args: base URL, username, issue ID")
-		return
+	baseURL := flag.String("baseurl", "", "a string")
+	username := flag.String("username", "", "a string")
+	token := flag.String("token", "", "a string")
+	id := flag.String("id", "", "a string")
+
+	flag.Parse()
+
+	var password string
+	if token == nil || *token == "" {
+		fmt.Println("Password: ")
+		bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			fmt.Println("Setting password failed")
+			return
+		}
+		password = string(bytePassword)
 	}
 
-	baseURL := args[0]
-	username := args[1]
-	id := args[2]
-
-	issueURL := fmt.Sprintf("URL: %s/browse/%s", baseURL, id)
+	issueURL := fmt.Sprintf("URL: %s/browse/%s", *baseURL, *id)
 
 	fmt.Println(issueURL)
 
-	fmt.Println("Password: ")
-	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
-	if err != nil {
-		fmt.Println("Setting password failed")
-		return
-	}
-	password := string(bytePassword)
 	fmt.Println("Thanks! Sending request...")
 
-	tp := jira.BasicAuthTransport{
-		Username: username,
-		Password: password,
+	var tp jira.BasicAuthTransport
+	if password != "" {
+		tp = jira.BasicAuthTransport{
+			Username: *username,
+			Password: password,
+		}
+	} else {
+		tp = jira.BasicAuthTransport{
+			Username: *username,
+			Password: *token,
+		}
 	}
 
-	jiraClient, err := jira.NewClient(tp.Client(), baseURL)
+	jiraClient, err := jira.NewClient(tp.Client(), *baseURL)
 	if err != nil {
 		fmt.Println("Connecting to Jira failed")
 		fmt.Println(err)
 		return
 	}
 
-	issue, _, err := jiraClient.Issue.Get(id, nil)
+	issue, _, err := jiraClient.Issue.Get(*id, nil)
 	if err != nil {
 		fmt.Println("Failed to get issue")
 		fmt.Println(err)
