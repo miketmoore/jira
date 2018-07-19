@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/andygrunwald/go-jira"
+	"github.com/olekukonko/tablewriter"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -82,23 +83,27 @@ func getHumanReadableDuration(seconds int) string {
 }
 
 func printIssueDetails(issue *jira.Issue) {
-	fmt.Println()
-	fmt.Printf("Summary: \t\t%s\n", issue.Fields.Summary)
-	fmt.Printf("Status: \t\t%s\n", issue.Fields.Status.Name)
-	fmt.Printf("Type: \t\t\t%s\n", issue.Fields.Type.Name)
-	fmt.Printf("Priority: \t\t%s\n", issue.Fields.Priority.Name)
-	fmt.Printf("Assignee: \t\t%s\n", issue.Fields.Assignee.DisplayName)
-	fmt.Printf("Creator: \t\t%s\n", issue.Fields.Creator.DisplayName)
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Key", "Value"})
 
-	fmt.Printf("Original Estimate: \t%s\n", getHumanReadableDuration(issue.Fields.TimeOriginalEstimate))
-	fmt.Printf("Estimate: \t\t%s\n", getHumanReadableDuration(issue.Fields.TimeEstimate))
-	fmt.Printf("Time Spent: \t\t%s\n", getHumanReadableDuration(issue.Fields.TimeSpent))
-
-	if issue.Fields.Sprint != nil {
-		fmt.Printf("Sprint ID: %d\n", issue.Fields.Sprint.ID)
-		fmt.Printf("Sprint Name: %s\n", issue.Fields.Sprint.Name)
+	data := [][]string{
+		[]string{"Summary", issue.Fields.Summary},
+		[]string{"Status", issue.Fields.Status.Name},
+		[]string{"Type", issue.Fields.Type.Name},
+		[]string{"Priority", issue.Fields.Priority.Name},
+		[]string{"Assignee", issue.Fields.Assignee.DisplayName},
+		[]string{"Creator", issue.Fields.Creator.DisplayName},
+		[]string{"Original Estimate", getHumanReadableDuration(issue.Fields.TimeOriginalEstimate)},
+		[]string{"Estimate", getHumanReadableDuration(issue.Fields.TimeEstimate)},
+		[]string{"Time Spent", getHumanReadableDuration(issue.Fields.TimeSpent)},
+		[]string{"Total Comments", fmt.Sprintf("%d", len(issue.Fields.Comments.Comments))},
 	}
 
-	fmt.Printf("Total Comments: %d\n", len(issue.Fields.Comments.Comments))
-	fmt.Println()
+	table.AppendBulk(data)
+
+	// Customize output for markdown
+	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	table.SetCenterSeparator("|")
+
+	table.Render()
 }
