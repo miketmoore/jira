@@ -1,68 +1,67 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
-	"syscall"
 
 	"github.com/andygrunwald/go-jira"
 	"github.com/olekukonko/tablewriter"
-	"golang.org/x/crypto/ssh/terminal"
 )
+
+type jsonConfig struct {
+	BaseURL  string `json:"baseurl"`
+	Username string `json:"username"`
+	APIToken string `json:"apitoken"`
+}
 
 func main() {
 
-	baseURL := flag.String("baseurl", "", "a string")
-	username := flag.String("username", "", "a string")
-	token := flag.String("token", "", "a string")
-	id := flag.String("id", "", "a string")
-
+	issueID := flag.String("issueid", "", "issue id")
+	configpath := flag.String("config", "", "Jira API Config")
 	flag.Parse()
 
-	var password string
-	if token == nil || *token == "" {
-		fmt.Println("Password: ")
-		bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			fmt.Println("Setting password failed")
-			return
-		}
-		password = string(bytePassword)
+	if issueID == nil || *issueID == "" {
+		fmt.Println("-issueid flag is required")
+		os.Exit(1)
 	}
 
-	issueURL := fmt.Sprintf("URL: %s/browse/%s", *baseURL, *id)
+	var config jsonConfig
+
+	file, err := ioutil.ReadFile(*configpath)
+	if err != nil {
+		fmt.Println("Failed to load config")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	json.Unmarshal(file, &config)
+
+	issueURL := fmt.Sprintf("URL: %s/browse/%s", config.BaseURL, *issueID)
 
 	fmt.Println(issueURL)
 
-	fmt.Println("Thanks! Sending request...")
-
-	var tp jira.BasicAuthTransport
-	if password != "" {
-		tp = jira.BasicAuthTransport{
-			Username: *username,
-			Password: password,
-		}
-	} else {
-		tp = jira.BasicAuthTransport{
-			Username: *username,
-			Password: *token,
-		}
+	tp := jira.BasicAuthTransport{
+		Username: config.Username,
+		Password: config.APIToken,
 	}
 
-	jiraClient, err := jira.NewClient(tp.Client(), *baseURL)
+	jiraClient, err := jira.NewClient(tp.Client(), config.BaseURL)
 	if err != nil {
 		fmt.Println("Connecting to Jira failed")
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 
-	issue, _, err := jiraClient.Issue.Get(*id, nil)
+	fmt.Println(*issueID)
+	issue, _, err := jiraClient.Issue.Get(*issueID, nil)
 	if err != nil {
 		fmt.Println("Failed to get issue")
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 
 	printIssueDetails(issue)
