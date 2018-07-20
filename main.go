@@ -24,6 +24,11 @@ func main() {
 	configpath := flag.String("config", "", "Jira API Config")
 	flag.Parse()
 
+	if configpath == nil || *configpath == "" {
+		fmt.Println("-config flag is required")
+		os.Exit(1)
+	}
+
 	if issueID == nil || *issueID == "" {
 		fmt.Println("-issueid flag is required")
 		os.Exit(1)
