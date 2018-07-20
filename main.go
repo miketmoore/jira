@@ -18,16 +18,29 @@ type jsonConfig struct {
 	APIToken string `json:"apitoken"`
 }
 
+const configEnvName = "JIRACONFIG"
+
 func main() {
 
 	issueID := flag.String("issueid", "", "issue id")
-	configpath := flag.String("config", "", "Jira API Config")
+	configpathflag := flag.String("config", "", "Jira API Config (optional)")
+	configpathenv := os.Getenv(configEnvName)
 	flag.Parse()
 
-	if configpath == nil || *configpath == "" {
-		fmt.Println("-config flag is required")
-		os.Exit(1)
+	var configpath string
+	if configpathenv == "" {
+		if configpathflag == nil || *configpathflag == "" {
+			// neither throw error
+			fmt.Println("You must specify your configuration file path.")
+			fmt.Println("You can do this either by setting the $JIRACONFIG environment variable, or by using the -config flag.")
+			os.Exit(1)
+		}
+		configpath = *configpathflag
+	} else {
+		configpath = configpathenv
 	}
+
+	flag.Parse()
 
 	if issueID == nil || *issueID == "" {
 		fmt.Println("-issueid flag is required")
@@ -36,7 +49,7 @@ func main() {
 
 	var config jsonConfig
 
-	file, err := ioutil.ReadFile(*configpath)
+	file, err := ioutil.ReadFile(configpath)
 	if err != nil {
 		fmt.Println("Failed to load config")
 		fmt.Println(err)
