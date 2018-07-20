@@ -118,13 +118,21 @@ func printIssueDetails(issue *jira.Issue) {
 		[]string{"Status", issue.Fields.Status.Name},
 		[]string{"Type", issue.Fields.Type.Name},
 		[]string{"Priority", issue.Fields.Priority.Name},
-		[]string{"Assignee", issue.Fields.Assignee.DisplayName},
+	}
+
+	if issue.Fields.Assignee != nil {
+		data = append(data, []string{"Assignee", issue.Fields.Assignee.DisplayName})
+	} else {
+		data = append(data, []string{"Assignee", ""})
+	}
+
+	data = append(data,
 		[]string{"Creator", issue.Fields.Creator.DisplayName},
 		[]string{"Original Estimate", getHumanReadableDuration(issue.Fields.TimeOriginalEstimate)},
 		[]string{"Estimate", getHumanReadableDuration(issue.Fields.TimeEstimate)},
 		[]string{"Time Spent", getHumanReadableDuration(issue.Fields.TimeSpent)},
 		[]string{"Total Comments", fmt.Sprintf("%d", len(issue.Fields.Comments.Comments))},
-	}
+	)
 
 	table.AppendBulk(data)
 
